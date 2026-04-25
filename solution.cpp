@@ -10,35 +10,41 @@ vector<int> subtree_size;
 vector<int> result;
 int n, k;
 
-// DFS to calculate component sizes when removing node u
-void dfs_check(int u, int parent, int& max_size) {
-    int component_size = 1;
+// DFS to calculate subtree sizes from root
+int dfs(int u, int parent) {
+    subtree_size[u] = 1;
     
     for (int v : adj[u]) {
         if (v != parent) {
-            dfs_check(v, u, max_size);
-            component_size += subtree_size[v];
+            subtree_size[u] += dfs(v, u);
         }
     }
     
-    subtree_size[u] = component_size;
-    max_size = max(max_size, component_size);
+    return subtree_size[u];
 }
 
 // Check if removing node u results in all components having size <= k
 bool check_node(int u) {
-    int max_component_size = 0;
-    
-    // For each neighbor of u, calculate the size of the component that would be formed
+    // Check all neighbors
     for (int v : adj[u]) {
-        // Reset subtree sizes
-        fill(subtree_size.begin(), subtree_size.end(), 0);
+        int component_size;
         
-        // Calculate size of component rooted at v (excluding u)
-        dfs_check(v, u, max_component_size);
+        // If v is a child in the rooted tree, component size is subtree_size[v]
+        // If v is the parent, component size is n - subtree_size[u]
+        if (subtree_size[v] < subtree_size[u]) {
+            // v is a child
+            component_size = subtree_size[v];
+        } else {
+            // v is the parent
+            component_size = n - subtree_size[u];
+        }
+        
+        if (component_size > k) {
+            return false;
+        }
     }
     
-    return max_component_size <= k;
+    return true;
 }
 
 int main() {
@@ -58,10 +64,12 @@ int main() {
         adj[b].push_back(a);
     }
     
+    // Calculate subtree sizes from root (node 1)
+    dfs(1, 0);
+    
     // Check each node
     for (int i = 1; i <= n; i++) {
-        bool can_remove = check_node(i);
-        if (can_remove) {
+        if (check_node(i)) {
             result.push_back(i);
         }
     }
